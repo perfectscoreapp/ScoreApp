@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  clerkId       String    @unique
+  email         String    @unique
+  role          UserRole  @default(STUDENT)
+  firstName     String?
+  lastName      String?
+  profileImage  String?
+  gradeLevel    Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  parentId      String?   // For student accounts linked to parent
+  parent        User?     @relation("ParentToStudent", fields: [parentId], references: [id])
+  students      User[]    @relation("ParentToStudent")
+  progress      Progress[]
+  subscription  Subscription?
+}
+
+model Topic {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  gradeLevel  Int
+  subject     Subject
+  icon        String?
+  color       String?
+  questions   Question[]
+  progress    Progress[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Question {
+  id          String    @id @default(cuid())
+  topicId     String
+  topic       Topic     @relation(fields: [topicId], references: [id])
+  content     String
+  options     Json      // Array of options
+  answer      Int       // Index of correct answer
+  explanation String
+  difficulty  Int       // 1-5 scale
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  progress    Progress[]
+}
+
+model Progress {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  topicId     String
+  topic       Topic     @relation(fields: [topicId], references: [id])
+  questionId  String
+  question    Question  @relation(fields: [questionId], references: [id])
+  isCorrect   Boolean
+  timeSpent   Int       // Time spent in seconds
+  createdAt   DateTime  @default(now())
+}
+
+model Subscription {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id])
+  stripeCustomerId String?  @unique
+  stripePriceId   String?
+  stripeSubscriptionId String? @unique
+  status          SubscriptionStatus
+  currentPeriodEnd DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+enum UserRole {
+  STUDENT
+  PARENT
+  ADMIN
+}
+
+enum Subject {
+  MATH
+  SCIENCE
+  ENGLISH
+  HISTORY
+  OTHER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+  TRIALING
+} 
